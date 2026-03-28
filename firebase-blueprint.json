@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Media": {
+      "title": "Media",
+      "description": "A media file (image, video, or audio) uploaded to the platform.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the media file."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["image", "video", "audio"],
+          "description": "The type of media."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the media file in storage."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the media was uploaded."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the media."
+        },
+        "size": {
+          "type": "number",
+          "description": "The size of the file in bytes."
+        }
+      },
+      "required": ["name", "type", "url", "createdAt"]
+    }
+  },
+  "firestore": {
+    "medias": {
+      "schema": "Media",
+      "description": "Collection of media files."
+    }
+  }
+}

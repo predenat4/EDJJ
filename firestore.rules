@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: medias
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - type: string (required, enum: image, video, audio)
+    //   - url: string (required, URL)
+    //   - createdAt: timestamp (required)
+    //   - description: string (optional)
+    //   - size: number (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == "predenatjeanphenix@gmail.com" ||
+        request.auth.token.email == "manemrosembert@gmail.com" ||
+        request.auth.token.email == "chretiensmaptoujouretenegbibla@gmail.com" ||
+        request.auth.token.email == "stepheclerveaux@gmail.com"
+      );
+    }
+
+    function isValidMedia(data) {
+      return data.keys().hasAll(['name', 'type', 'url', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 255 &&
+             data.type in ['image', 'video', 'audio'] &&
+             data.url is string && data.url.matches("^https://.*") &&
+             data.createdAt is timestamp;
+    }
+
+    match /medias/{mediaId} {
+      allow read: if true; // Publicly readable
+      allow create: if isAdmin() && isValidMedia(request.resource.data);
+      allow update: if isAdmin() && isValidMedia(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
