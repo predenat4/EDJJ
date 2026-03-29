@@ -2,12 +2,100 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { auth, db, storage } from '../firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, LogOut, CheckCircle2, AlertCircle, Loader2, Key, Settings, Trash2, Edit2, Save, Search } from 'lucide-react';
+import { Upload, X, LogOut, CheckCircle2, AlertCircle, Loader2, Key, Settings, Trash2, Edit2, Save, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MediaType, Media } from '../types';
 import { format } from 'date-fns';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo, null, 2));
+  throw new Error(JSON.stringify(errInfo));
+};
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 text-center glass-card max-w-lg mx-auto mt-20">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Une erreur est survenue</h2>
+          <p className="text-zinc-500 text-sm mb-6">
+            {this.state.error?.message || "Une erreur inattendue s'est produite dans l'espace admin."}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="btn-blue-gradient flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Actualiser la page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const ALLOWED_EMAILS = [
   'predenatjeanphenix@gmail.com',
@@ -17,6 +105,14 @@ const ALLOWED_EMAILS = [
 ];
 
 export const AdminPanel: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <AdminPanelContent />
+    </ErrorBoundary>
+  );
+};
+
+const AdminPanelContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState<'upload' | 'manage'>('upload');
@@ -50,13 +146,16 @@ export const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthorized) return;
-    const q = query(collection(db, 'medias'), orderBy('createdAt', 'desc'));
+    const path = 'medias';
+    const q = query(collection(db, path), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Media[];
       setMedias(data);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
     });
     return () => unsubscribe();
   }, [isAuthorized]);
@@ -104,31 +203,46 @@ export const AdminPanel: React.FC = () => {
     setError(null);
     setSuccess(false);
 
+    console.log("Starting upload for:", file.name, "Size:", file.size, "Type:", file.type);
+
     try {
       const mediaType = getMediaType(file);
-      const storageRef = ref(storage, `medias/${Date.now()}_${file.name}`);
+      const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+      const storageRef = ref(storage, `medias/${fileName}`);
+      
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
           const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log("Upload progress:", p.toFixed(2) + "%", "Transferred:", snapshot.bytesTransferred, "Total:", snapshot.totalBytes);
           setProgress(p);
         }, 
         (err) => {
-          setError("Erreur lors de l'upload: " + err.message);
+          console.error("Upload task error:", err);
+          setError(`Erreur lors de l'upload: ${err.message} (Code: ${err.code})`);
           setUploading(false);
         }, 
         async () => {
+          console.log("Upload completed, getting download URL...");
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            await addDoc(collection(db, 'medias'), {
-              name: file.name,
-              type: mediaType,
-              url: downloadURL,
-              description: description,
-              size: file.size,
-              createdAt: serverTimestamp()
-            });
+            console.log("Download URL obtained:", downloadURL);
+            
+            const path = 'medias';
+            try {
+              await addDoc(collection(db, path), {
+                name: file.name,
+                type: mediaType,
+                url: downloadURL,
+                description: description,
+                size: file.size,
+                createdAt: serverTimestamp()
+              });
+              console.log("Firestore document added successfully");
+            } catch (fsErr) {
+              handleFirestoreError(fsErr, OperationType.WRITE, path);
+            }
             
             setSuccess(true);
             setFile(null);
@@ -136,12 +250,14 @@ export const AdminPanel: React.FC = () => {
             setUploading(false);
             setTimeout(() => setSuccess(false), 3000);
           } catch (err: any) {
+            console.error("Post-upload error:", err);
             setError("Erreur lors de l'enregistrement: " + err.message);
             setUploading(false);
           }
         }
       );
     } catch (err: any) {
+      console.error("Unexpected upload error:", err);
       setError("Erreur inattendue: " + err.message);
       setUploading(false);
     }
@@ -150,18 +266,12 @@ export const AdminPanel: React.FC = () => {
   const handleDelete = async (media: Media) => {
     if (!window.confirm(`Êtes-vous sûr de vouloir supprimer "${media.name}" ?`)) return;
     setDeletingId(media.id);
+    const path = `medias/${media.id}`;
     try {
-      // 1. Delete from Storage
-      // We need to extract the path from the URL or use the name if we stored it properly.
-      // Since we don't have the full path stored, we try to delete by ref if possible or just handle Firestore.
-      // For simplicity in this demo, we'll try to delete the doc. 
-      // Ideally we'd have the storage path stored.
-      
-      // 2. Delete from Firestore
       await deleteDoc(doc(db, 'medias', media.id));
       setDeletingId(null);
     } catch (err: any) {
-      alert("Erreur lors de la suppression: " + err.message);
+      handleFirestoreError(err, OperationType.DELETE, path);
       setDeletingId(null);
     }
   };
@@ -173,13 +283,14 @@ export const AdminPanel: React.FC = () => {
 
   const handleUpdateName = async (id: string) => {
     if (!editName.trim()) return;
+    const path = `medias/${id}`;
     try {
       await updateDoc(doc(db, 'medias', id), {
         name: editName.trim()
       });
       setEditingId(null);
     } catch (err: any) {
-      alert("Erreur lors de la modification: " + err.message);
+      handleFirestoreError(err, OperationType.UPDATE, path);
     }
   };
 
@@ -259,12 +370,12 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'upload' ? (
+        {activeTab === 'upload' && (
           <motion.div 
             key="upload"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             className="glass-card p-8"
           >
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -336,10 +447,24 @@ export const AdminPanel: React.FC = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-lg mb-6 flex items-center gap-3"
+                  className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-lg mb-6 flex flex-col gap-3"
                 >
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  {error}
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <div className="flex-grow">
+                      <p className="font-bold">Erreur d'upload</p>
+                      <p className="text-xs opacity-80">{error}</p>
+                    </div>
+                  </div>
+                  <div className="text-[10px] bg-black/20 p-2 rounded border border-red-500/10 font-mono">
+                    Conseil: Vérifiez que les "Storage Rules" dans votre console Firebase autorisent l'écriture et que le service Storage est activé.
+                  </div>
+                  <button 
+                    onClick={() => { setError(null); setUploading(false); setProgress(0); }}
+                    className="text-xs underline hover:text-white transition-colors self-start"
+                  >
+                    Réessayer
+                  </button>
                 </motion.div>
               )}
               {success && (
@@ -377,12 +502,13 @@ export const AdminPanel: React.FC = () => {
               )}
             </button>
           </motion.div>
-        ) : (
+        )}
+        {activeTab === 'manage' && (
           <motion.div 
             key="manage"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             className="space-y-4"
           >
             {/* Search */}

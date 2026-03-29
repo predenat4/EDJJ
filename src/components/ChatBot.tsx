@@ -42,7 +42,7 @@ export const ChatBot: React.FC = () => {
       `- Nom: ${m.name}, Type: ${m.type}, Date: ${m.createdAt?.toDate ? format(m.createdAt.toDate(), 'dd/MM/yyyy') : 'N/A'}, Description: ${m.description || 'N/A'}`
     ).join('\n');
 
-    return `Tu es l'assistant intelligent de EDJJ Media, l'église EDJJ. 
+    return `Tu es l'assistant intelligent de EDJJ Media, l'église EDJJ (Eglise de DIEU JEHOVAH JIREH). 
     L'église est dirigée par le Pasteur LAMBERT ABRAHAM.
     Ton rôle est d'aider les utilisateurs à trouver des médias (images, vidéos, audios) et de répondre à leurs questions sur l'église et ses services.
     
@@ -63,7 +63,8 @@ export const ChatBot: React.FC = () => {
     4. Sois poli, chaleureux et spirituel.
     5. Réponds en français.
     6. Tu te souviens du contexte de la conversation actuelle.
-    7. Si un utilisateur demande des détails sur un média, donne toutes les informations disponibles (nom, type, date, description).`;
+    7. Si un utilisateur demande des détails sur un média, donne toutes les informations disponibles (nom, type, date, description).
+    8. Le sigle EDJJ signifie : Eglise de DIEU JEHOVAH JIREH.`;
   };
 
   const handleSend = async () => {
