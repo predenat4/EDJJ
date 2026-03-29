@@ -109,7 +109,7 @@ export const ChatBot: React.FC = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full shadow-2xl shadow-blue-500/40 flex items-center justify-center text-white group"
+        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full shadow-2xl shadow-purple-500/40 flex items-center justify-center text-white group"
       >
         <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform" />
         <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-ping" />
@@ -122,10 +122,10 @@ export const ChatBot: React.FC = () => {
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="fixed bottom-24 right-6 z-50 w-[90vw] md:w-[400px] h-[600px] max-h-[70vh] glass-card flex flex-col shadow-2xl border-blue-500/20"
+            className="fixed bottom-24 right-6 z-50 w-[90vw] md:w-[400px] h-[600px] max-h-[70vh] glass-card flex flex-col shadow-2xl border-purple-500/20"
           >
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-between">
+            <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
                   <Bot className="w-6 h-6 text-white" />
@@ -134,7 +134,7 @@ export const ChatBot: React.FC = () => {
                   <h3 className="font-bold text-white text-sm">Assistant EDJJ</h3>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    <span className="text-[10px] text-blue-100 font-medium uppercase tracking-wider">En ligne</span>
+                    <span className="text-[10px] text-purple-100 font-medium uppercase tracking-wider">En ligne</span>
                   </div>
                 </div>
               </div>
@@ -152,8 +152,8 @@ export const ChatBot: React.FC = () => {
             <div className="flex-grow overflow-y-auto p-4 space-y-4 scrollbar-hide">
               {messages.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4">
-                    <Bot className="w-8 h-8 text-blue-500" />
+                  <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mb-4">
+                    <Bot className="w-8 h-8 text-purple-500" />
                   </div>
                   <h4 className="font-bold text-zinc-300 mb-2">Bonjour !</h4>
                   <p className="text-xs text-zinc-500">
@@ -171,13 +171,13 @@ export const ChatBot: React.FC = () => {
                 >
                   <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-                      msg.role === 'user' ? 'bg-zinc-800' : 'bg-blue-600'
+                      msg.role === 'user' ? 'bg-zinc-800' : 'bg-gradient-to-br from-blue-600 to-purple-600'
                     }`}>
                       {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
                     <div className={`p-3 rounded-2xl text-sm ${
                       msg.role === 'user' 
-                        ? 'bg-blue-500 text-white rounded-tr-none' 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-tr-none' 
                         : 'bg-zinc-800 text-zinc-200 rounded-tl-none'
                     }`}>
                       {msg.text}
@@ -188,7 +188,7 @@ export const ChatBot: React.FC = () => {
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="flex gap-2 items-center bg-zinc-800 p-3 rounded-2xl rounded-tl-none">
-                    <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-purple-500 animate-spin" />
                     <span className="text-xs text-zinc-500">L'assistant réfléchit...</span>
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export const ChatBot: React.FC = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                   placeholder="Posez votre question..."
-                  className="flex-grow bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-blue-500 transition-all"
+                  className="flex-grow bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-purple-500 transition-all"
                 />
                 <button
                   onClick={handleSend}
@@ -213,7 +213,7 @@ export const ChatBot: React.FC = () => {
                   className={`p-3 rounded-xl transition-all ${
                     !input.trim() || isLoading 
                       ? 'bg-zinc-800 text-zinc-600' 
-                      : 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-purple-500/20 hover:scale-105 active:scale-95'
                   }`}
                 >
                   <Send className="w-5 h-5" />

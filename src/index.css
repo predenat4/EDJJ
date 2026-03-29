@@ -18,7 +18,7 @@
 }
 
 .btn-blue-gradient {
-  @apply relative bg-gradient-to-r from-blue-600 to-blue-400 text-white font-bold py-3 px-8 rounded-xl transition-all duration-500 shadow-[0_10px_30px_-10px_var(--color-brand-blue-glow)] hover:shadow-[0_20px_40px_-10px_var(--color-brand-blue-glow)] hover:-translate-y-1 active:translate-y-0 active:scale-95 overflow-hidden;
+  @apply relative bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-8 rounded-xl transition-all duration-500 shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] hover:shadow-[0_20px_40px_-10px_rgba(139,92,246,0.4)] hover:-translate-y-1 active:translate-y-0 active:scale-95 overflow-hidden;
 }
 
 .btn-blue-gradient::after {
@@ -31,7 +31,7 @@
 }
 
 .glass-card {
-  @apply bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-md rounded-2xl overflow-hidden transition-all duration-500 hover:border-blue-500/30 hover:shadow-[0_20px_50px_-20px_rgba(59,130,246,0.2)];
+  @apply bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-md rounded-2xl overflow-hidden transition-all duration-500 hover:border-purple-500/30 hover:shadow-[0_20px_50px_-20px_rgba(139,92,246,0.2)];
 }
 
 @keyframes float {
@@ -44,7 +44,7 @@
 }
 
 .blue-glow-text {
-  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
 }
 
 /* Custom Scrollbar Styling */
@@ -57,12 +57,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gradient-to-b from-blue-600 to-blue-400 rounded-full border-2 border-zinc-900/50;
+  @apply bg-gradient-to-b from-blue-600 to-purple-600 rounded-full border-2 border-zinc-900/50;
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply from-blue-500 to-blue-300;
+  @apply from-blue-500 to-purple-500;
 }
 
 /* For Firefox */

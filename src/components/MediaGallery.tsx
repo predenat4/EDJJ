@@ -44,13 +44,13 @@ export const MediaGallery: React.FC = () => {
       {/* Search & Filters */}
       <div className="flex flex-col md:flex-row gap-6 mb-12 items-center justify-between">
         <div className="relative w-full md:max-w-md group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-purple-500 transition-colors" />
           <input 
             type="text" 
             placeholder="Rechercher par nom ou date..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-3 pl-12 pr-6 text-sm focus:outline-none focus:border-blue-500 transition-all focus:ring-4 focus:ring-blue-500/10"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-3 pl-12 pr-6 text-sm focus:outline-none focus:border-purple-500 transition-all focus:ring-4 focus:ring-purple-500/10"
           />
         </div>
 
@@ -61,7 +61,7 @@ export const MediaGallery: React.FC = () => {
               onClick={() => setActiveCategory(cat.id)}
               className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap relative overflow-hidden ${
                 activeCategory === cat.id 
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-[0_10px_20px_-5px_rgba(59,130,246,0.5)] -translate-y-1 scale-105' 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-[0_10px_20px_-5px_rgba(139,92,246,0.5)] -translate-y-1 scale-105' 
                   : 'bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border border-white/5'
               }`}
             >
@@ -81,7 +81,7 @@ export const MediaGallery: React.FC = () => {
       {/* Grid */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
-          <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+          <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
           <p className="text-zinc-500 animate-pulse">Chargement des médias...</p>
         </div>
       ) : filteredMedias.length > 0 ? (
