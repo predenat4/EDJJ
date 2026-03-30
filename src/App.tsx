@@ -41,8 +41,11 @@ export default function App() {
               <CrucifixIcon className="w-6 h-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
             </div>
             <div className="flex flex-col -space-y-1">
-              <span className="text-xl font-black tracking-tighter text-white group-hover:text-purple-400 transition-colors">EDJJ</span>
-              <span className="text-xl font-black tracking-tighter text-blue-500 group-hover:text-white transition-colors">Media</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xl font-black tracking-tighter text-white group-hover:text-purple-400 transition-colors">EDJJ</span>
+                <span className="text-xl font-black tracking-tighter text-blue-500 group-hover:text-white transition-colors">Media</span>
+              </div>
+              <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">Eglise de DIEU JEHOVAH JIREH</span>
             </div>
           </div>
 
@@ -68,9 +71,9 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="inline-block mb-6 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-bold tracking-[0.3em] uppercase"
+              className="inline-block mb-6 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold tracking-[0.3em] uppercase"
             >
-              Bienvenue sur EDJJ Media
+              Bienvenue sur EDJJ Media (Eglise de DIEU JEHOVAH JIREH)
             </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
@@ -125,7 +128,7 @@ export default function App() {
       {/* Footer */}
       <footer className="py-20 border-t border-white/5 mt-32 bg-black/40 backdrop-blur-md relative z-10">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-3 mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-10 h-10 bg-purple-600/10 rounded-xl flex items-center justify-center border border-purple-500/20">
               <CrucifixIcon className="w-6 h-6 text-purple-500" />
             </div>
@@ -134,6 +137,9 @@ export default function App() {
               <span className="text-xl font-black tracking-tighter text-purple-500">Media</span>
             </div>
           </div>
+          <p className="text-zinc-500 text-[10px] uppercase tracking-widest mb-8">
+            Eglise de DIEU JEHOVAH JIREH
+          </p>
           <p className="text-zinc-500 text-[10px] md:text-xs uppercase tracking-[0.4em] font-bold mb-4">
             &copy; 2026 EDJJ Media tout droit réservé
           </p>
