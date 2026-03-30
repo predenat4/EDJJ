@@ -46,12 +46,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
         whileHover={{ y: -8, transition: { duration: 0.3 } }}
         className="glass-card flex flex-col h-full group/card"
       >
-        <div className="relative aspect-video bg-zinc-800 flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[4/5] bg-zinc-900 flex items-center justify-center overflow-hidden border-b border-white/5">
           {media.type === 'image' ? (
             <img 
               src={media.url} 
               alt={media.name} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+              className="w-full h-full object-contain transition-transform duration-700 group-hover/card:scale-105"
               referrerPolicy="no-referrer"
             />
           ) : (
@@ -87,7 +87,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
           <div className="grid grid-cols-3 gap-2">
             <button 
               onClick={() => setIsPreviewOpen(true)}
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-purple-500/10 transition-all text-zinc-500 hover:text-purple-400 group/btn"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 transition-all text-blue-400 group/btn border border-blue-500/20"
             >
               <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Aperçu</span>
@@ -97,14 +97,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
               download={media.name}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-purple-500/10 transition-all text-zinc-500 hover:text-purple-400 group/btn"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-green-500/10 hover:bg-green-500/20 transition-all text-green-400 group/btn border border-green-500/20"
             >
               <Download className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Télécharger</span>
             </a>
             <button 
               onClick={handleShare}
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-purple-500/10 transition-all text-zinc-500 hover:text-purple-400 group/btn"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 transition-all text-purple-400 group/btn border border-purple-500/20"
             >
               <Share2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
               <span className="text-[9px] font-bold uppercase tracking-wider">Partager</span>
