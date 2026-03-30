@@ -80,6 +80,7 @@ export const AdminPanel: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [externalUrl, setExternalUrl] = useState('');
   const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
   // Management states
@@ -184,7 +185,7 @@ export const AdminPanel: React.FC = () => {
       let finalSize = 0;
 
       if (uploadMode === 'file' && file) {
-        finalName = file.name;
+        finalName = title.trim() || file.name;
         finalSize = file.size;
         finalType = getMediaType(file);
 
@@ -228,7 +229,7 @@ export const AdminPanel: React.FC = () => {
       } else {
         // Mode Lien Direct
         finalUrl = externalUrl.trim();
-        finalName = "Média externe";
+        finalName = title.trim() || "Média externe";
         finalSize = 0;
         if (finalUrl.match(/\.(mp4|webm|ogg|mov)$/i)) finalType = 'video';
         else if (finalUrl.match(/\.(mp3|wav|ogg|m4a)$/i)) finalType = 'audio';
@@ -248,6 +249,7 @@ export const AdminPanel: React.FC = () => {
       setProgress(100);
       setSuccess(true);
       setFile(null);
+      setTitle('');
       setExternalUrl('');
       setDescription('');
       setUploading(false);
@@ -494,6 +496,18 @@ export const AdminPanel: React.FC = () => {
               </div>
             )}
 
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Titre du média (Affiché sur le site)</label>
+              <input 
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex: Culte du Dimanche 30 Mars"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+              />
+              <p className="text-[10px] text-zinc-500 mt-1 italic">Donnez un titre clair pour que le nom du fichier (ex: IMG_123.jpg) ne soit pas visible.</p>
+            </div>
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-zinc-400 mb-2">Description (optionnelle)</label>
               <textarea 
@@ -653,10 +667,11 @@ export const AdminPanel: React.FC = () => {
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => startEditing(media)}
-                        className="p-2 bg-zinc-800 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-500 rounded-lg transition-all"
+                        className="p-2 bg-zinc-800 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-500 rounded-lg transition-all flex items-center gap-2"
                         title="Modifier le nom"
                       >
                         <Edit2 className="w-4 h-4" />
+                        <span className="text-[10px] font-bold uppercase hidden sm:inline">Modifier</span>
                       </button>
                       <button 
                         onClick={() => handleDelete(media)}
