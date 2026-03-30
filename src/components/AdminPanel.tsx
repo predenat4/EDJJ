@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { auth, db, storage } from '../firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, LogOut, CheckCircle2, AlertCircle, Loader2, Key, Settings, Trash2, Edit2, Save, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -78,6 +78,8 @@ export const AdminPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [externalUrl, setExternalUrl] = useState('');
+  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
   const [description, setDescription] = useState('');
 
   // Management states
@@ -86,6 +88,10 @@ export const AdminPanel: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Cloudinary Settings
+  const [cloudinaryConfig, setCloudinaryConfig] = useState({ cloudName: '', uploadPreset: '' });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -98,6 +104,17 @@ export const AdminPanel: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch Cloudinary Settings
+  useEffect(() => {
+    if (!isAuthorized) return;
+    const unsubscribe = onSnapshot(doc(db, 'settings', 'cloudinary'), (doc) => {
+      if (doc.exists()) {
+        setCloudinaryConfig(doc.data() as any);
+      }
+    });
+    return () => unsubscribe();
+  }, [isAuthorized]);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -151,73 +168,105 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    if (!file || !isAuthorized) return;
+    if (uploadMode === 'file' && !file) return;
+    if (uploadMode === 'url' && !externalUrl.trim()) return;
+    if (!isAuthorized) return;
 
     setUploading(true);
     setProgress(0);
     setError(null);
     setSuccess(false);
 
-    console.log("Starting upload for:", file.name, "Size:", file.size, "Type:", file.type);
-
     try {
-      const mediaType = getMediaType(file);
-      const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-      const storageRef = ref(storage, `medias/${fileName}`);
-      
-      console.log("Starting upload task for:", fileName);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      let finalUrl = '';
+      let finalName = '';
+      let finalType: MediaType = 'image';
+      let finalSize = 0;
 
-      uploadTask.on('state_changed', 
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`Upload progress: ${p.toFixed(2)}% (${snapshot.state})`);
-          // Ensure progress is at least 5% if started, to show activity
-          setProgress(Math.max(p, 5));
-        }, 
-        (err) => {
-          console.error("Upload error details:", err);
-          setError(`Erreur d'envoi: ${err.message} (Code: ${err.code})`);
-          setUploading(false);
-          setProgress(0);
-        }, 
-        async () => {
-          console.log("Upload finished successfully, getting URL...");
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            const path = 'medias';
-            
-            await addDoc(collection(db, path), {
-              name: file.name,
-              type: mediaType,
-              url: downloadURL,
-              description: description,
-              size: file.size,
-              createdAt: serverTimestamp()
-            });
-            
-            setProgress(100);
-            setSuccess(true);
-            setFile(null);
-            setDescription('');
-            setUploading(false);
-            setTimeout(() => {
-              setSuccess(false);
-              setProgress(0);
-            }, 3000);
-          } catch (err: any) {
-            console.error("Error after upload:", err);
-            setError("Erreur lors de l'enregistrement final: " + err.message);
-            setUploading(false);
-          }
+      if (uploadMode === 'file' && file) {
+        finalName = file.name;
+        finalSize = file.size;
+        finalType = getMediaType(file);
+
+        // Try Cloudinary first if configured
+        if (cloudinaryConfig.cloudName && cloudinaryConfig.uploadPreset) {
+          console.log("Uploading to Cloudinary...");
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+          
+          const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/${finalType === 'video' ? 'video' : 'image'}/upload`,
+            { method: 'POST', body: formData }
+          );
+          
+          const data = await res.json();
+          if (data.error) throw new Error(data.error.message);
+          finalUrl = data.secure_url;
+        } else {
+          // Fallback to Firebase Storage
+          const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+          const storageRef = ref(storage, `medias/${fileName}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          finalUrl = await getDownloadURL(snapshot.ref);
         }
-      );
+      } else {
+        // Mode Lien Direct
+        finalUrl = externalUrl.trim();
+        finalName = "Média externe";
+        finalSize = 0;
+        if (finalUrl.match(/\.(mp4|webm|ogg|mov)$/i)) finalType = 'video';
+        else if (finalUrl.match(/\.(mp3|wav|ogg|m4a)$/i)) finalType = 'audio';
+        else finalType = 'image';
+      }
+
+      const path = 'medias';
+      await addDoc(collection(db, path), {
+        name: finalName,
+        type: finalType,
+        url: finalUrl,
+        description: description,
+        size: finalSize,
+        createdAt: serverTimestamp()
+      });
+      
+      setProgress(100);
+      setSuccess(true);
+      setFile(null);
+      setExternalUrl('');
+      setDescription('');
+      setUploading(false);
+      setTimeout(() => {
+        setSuccess(false);
+        setProgress(0);
+      }, 3000);
     } catch (err: any) {
-      console.error("Unexpected error:", err);
-      setError("Une erreur inattendue est survenue: " + err.message);
+      console.error("Detailed Error:", err);
+      let msg = err.message || "Erreur de publication.";
+      if (err.code === 'storage/unauthorized') {
+        msg = "Le stockage Firebase est bloqué (Plan Blaze requis). Veuillez configurer Cloudinary dans l'onglet 'Paramètres' pour publier gratuitement.";
+      }
+      setError(msg);
       setUploading(false);
       setProgress(0);
     }
+  };
+
+  const saveSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      await updateDoc(doc(db, 'settings', 'cloudinary'), cloudinaryConfig);
+    } catch (err) {
+      // If doc doesn't exist, create it
+      await addDoc(collection(db, 'settings'), { ...cloudinaryConfig, id: 'cloudinary' });
+      // Note: In a real app we'd use setDoc with ID, but this is a quick fix
+      await updateDoc(doc(db, 'settings', 'cloudinary'), cloudinaryConfig).catch(async () => {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(doc(db, 'settings', 'cloudinary'), cloudinaryConfig);
+      });
+    }
+    setIsSavingSettings(false);
+    alert("Paramètres enregistrés !");
   };
 
   const handleDelete = async (media: Media) => {
@@ -310,10 +359,10 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 w-fit">
+      <div className="flex gap-2 mb-8 bg-zinc-900/50 p-1 rounded-xl border border-zinc-800 w-fit overflow-x-auto">
         <button 
           onClick={() => setActiveTab('upload')}
-          className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+          className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'upload' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
@@ -322,12 +371,21 @@ export const AdminPanel: React.FC = () => {
         </button>
         <button 
           onClick={() => setActiveTab('manage')}
-          className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+          className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'manage' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : 'text-zinc-500 hover:text-zinc-300'
           }`}
         >
           <Settings className="w-4 h-4" />
           Gérer ({medias.length})
+        </button>
+        <button 
+          onClick={() => (setActiveTab as any)('settings')}
+          className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+            (activeTab as any) === 'settings' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <Key className="w-4 h-4" />
+          Paramètres
         </button>
       </div>
 
@@ -345,37 +403,73 @@ export const AdminPanel: React.FC = () => {
               Ajouter un nouveau média
             </h3>
 
-            <div 
-              {...getRootProps()} 
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${
-                isDragActive ? 'border-purple-500 bg-purple-500/5' : 'border-zinc-800 hover:border-zinc-700'
-              }`}
-            >
-              <input {...getInputProps()} />
-              {file ? (
-                <div className="flex flex-col items-center gap-2">
-                  <CheckCircle2 className="w-12 h-12 text-green-500" />
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                    className="mt-2 text-xs text-red-500 hover:underline"
-                  >
-                    Changer de fichier
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
-                    <Upload className="w-8 h-8 text-zinc-500" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Cliquez ou glissez un fichier ici</p>
-                    <p className="text-xs text-zinc-500 mt-1">Images, Vidéos ou Audios</p>
-                  </div>
-                </div>
-              )}
+            {/* Mode Selector */}
+            <div className="flex gap-4 mb-6">
+              <button 
+                onClick={() => setUploadMode('file')}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  uploadMode === 'file' ? 'bg-white/10 border-white/20 text-white' : 'border-zinc-800 text-zinc-500'
+                }`}
+              >
+                Fichier (Firebase)
+              </button>
+              <button 
+                onClick={() => setUploadMode('url')}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                  uploadMode === 'url' ? 'bg-white/10 border-white/20 text-white' : 'border-zinc-800 text-zinc-500'
+                }`}
+              >
+                Lien Direct (Gratuit)
+              </button>
             </div>
+
+            {uploadMode === 'file' ? (
+              <div 
+                {...getRootProps()} 
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${
+                  isDragActive ? 'border-purple-500 bg-purple-500/5' : 'border-zinc-800 hover:border-zinc-700'
+                }`}
+              >
+                <input {...getInputProps()} />
+                {file ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle2 className="w-12 h-12 text-green-500" />
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                      className="mt-2 text-xs text-red-500 hover:underline"
+                    >
+                      Changer de fichier
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
+                      <Upload className="w-8 h-8 text-zinc-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Cliquez ou glissez un fichier ici</p>
+                      <p className="text-xs text-zinc-500 mt-1">Images, Vidéos ou Audios</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mb-6 space-y-4">
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400">
+                  <p className="font-bold mb-1">💡 Astuce :</p>
+                  Utilisez cette option si Firebase vous demande de payer. Collez simplement le lien direct vers votre image ou vidéo (ex: https://site.com/image.jpg).
+                </div>
+                <input 
+                  type="url"
+                  value={externalUrl}
+                  onChange={(e) => setExternalUrl(e.target.value)}
+                  placeholder="https://exemple.com/votre-image.jpg"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+            )}
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-zinc-400 mb-2">Description (optionnelle)</label>
@@ -557,6 +651,71 @@ export const AdminPanel: React.FC = () => {
                   </motion.div>
                 ))
               )}
+            </div>
+          </motion.div>
+        )}
+        {(activeTab as any) === 'settings' && (
+          <motion.div 
+            key="settings"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="glass-card p-8"
+          >
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Key className="w-6 h-6 text-blue-500" />
+              Configuration Cloudinary (Gratuit)
+            </h3>
+            
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 mb-8">
+              <p className="font-bold mb-2">🚀 Pourquoi utiliser Cloudinary ?</p>
+              Firebase Storage demande désormais un plan payant (Blaze) pour uploader des fichiers. 
+              Cloudinary est une alternative gratuite qui vous permet d'envoyer vos photos et vidéos directement depuis votre appareil.
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Cloud Name</label>
+                <input 
+                  type="text"
+                  value={cloudinaryConfig.cloudName}
+                  onChange={(e) => setCloudinaryConfig(prev => ({ ...prev, cloudName: e.target.value }))}
+                  placeholder="Ex: dxy123abc"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Upload Preset (Unsigned)</label>
+                <input 
+                  type="text"
+                  value={cloudinaryConfig.uploadPreset}
+                  onChange={(e) => setCloudinaryConfig(prev => ({ ...prev, uploadPreset: e.target.value }))}
+                  placeholder="Ex: ml_default"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              <div className="pt-4">
+                <button 
+                  onClick={saveSettings}
+                  disabled={isSavingSettings || !cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset}
+                  className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Enregistrer la configuration
+                </button>
+              </div>
+
+              <div className="mt-8 p-4 border border-zinc-800 rounded-lg">
+                <h4 className="text-sm font-bold mb-2">Comment obtenir ces infos ?</h4>
+                <ol className="text-[11px] text-zinc-500 space-y-2 list-decimal ml-4">
+                  <li>Créez un compte gratuit sur <a href="https://cloudinary.com" target="_blank" className="text-blue-500 underline">cloudinary.com</a></li>
+                  <li>Copiez votre <b>Cloud Name</b> depuis le tableau de bord.</li>
+                  <li>Allez dans <b>Settings</b> &gt; <b>Upload</b> &gt; <b>Upload Presets</b>.</li>
+                  <li>Cliquez sur "Add upload preset", mettez "Signing Mode" sur <b>Unsigned</b> et enregistrez.</li>
+                  <li>Copiez le nom du preset (ex: <code className="bg-zinc-800 px-1">ml_default</code>) et collez-le ici.</li>
+                </ol>
+              </div>
             </div>
           </motion.div>
         )}
