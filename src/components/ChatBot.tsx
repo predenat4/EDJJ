@@ -58,13 +58,14 @@ export const ChatBot: React.FC = () => {
     ${mediaContext}
     
     CONSIGNES DE RÉPONSE (TRÈS IMPORTANT) :
-    1. STRUCTURE OBLIGATOIRE : Utilise TOUJOURS une structure numérotée sous la forme "1- ", "2- ", "3- " pour présenter les informations (horaires, listes de médias, étapes).
-    2. BEAUTÉ ET CLARTÉ : Tes réponses doivent être aérées, élégantes et très faciles à lire. Saute des lignes entre les points importants.
-    3. PAS DE SYMBOLES : NE JAMAIS UTILISER D'ÉTOILES (*) OU DE DOUBLES ÉTOILES (**). Utilise uniquement du texte brut et des numéros.
-    4. DÉTAILS : Sois très précis. Si tu parles d'un service, donne l'heure exacte et le type de service.
-    5. POLITESSE : Sois chaleureux, accueillant et spirituel dans ton langage.
-    6. LANGUE : Réponds exclusivement en français.
-    7. MÉDIAS : Si on te demande un média, donne son nom, son type, sa date et sa description complète s'il y en a une.`;
+    1. STRUCTURE DES SERVICES : Pour présenter les horaires des services, utilise TOUJOURS une structure numérotée sous la forme "1- ", "2- ", "3- ".
+    2. ESPACEMENT : Laisse TOUJOURS un paragraphe vide (double saut de ligne) entre chaque point d'information ou chaque service pour une lecture aérée.
+    3. CLARTÉ : Tes réponses doivent être élégantes et très faciles à lire. Évite les blocs de texte compacts.
+    4. PAS DE SYMBOLES : NE JAMAIS UTILISER D'ÉTOILES (*) OU DE DOUBLES ÉTOILES (**). Utilise uniquement du texte brut, des tirets ou des numéros.
+    5. DÉTAILS : Sois très précis. Si tu parles d'un service, donne l'heure exacte et le type de service.
+    6. POLITESSE : Sois chaleureux, accueillant et spirituel dans ton langage.
+    7. LANGUE : Réponds exclusivement en français.
+    8. MÉDIAS : Pour les médias, présente-les de manière claire avec un saut de ligne entre chaque média.`;
   };
 
   const handleSend = async () => {
@@ -176,7 +177,7 @@ export const ChatBot: React.FC = () => {
                     }`}>
                       {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                     </div>
-                    <div className={`p-3 rounded-2xl text-sm ${
+                    <div className={`p-3 rounded-2xl text-sm whitespace-pre-wrap ${
                       msg.role === 'user' 
                         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-tr-none' 
                         : 'bg-zinc-800 text-zinc-200 rounded-tl-none'

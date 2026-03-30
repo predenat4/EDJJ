@@ -97,7 +97,7 @@ export const AdminPanel: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (u && u.email && ALLOWED_EMAILS.includes(u.email)) {
+      if (u && u.email && ALLOWED_EMAILS.includes(u.email.toLowerCase())) {
         setIsAuthorized(true);
       } else {
         setIsAuthorized(false);
@@ -194,26 +194,44 @@ export const AdminPanel: React.FC = () => {
           console.log("Compressing image for direct database storage...");
           finalUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
+            
+            // Timeout after 30 seconds
+            const timeout = setTimeout(() => {
+              reject(new Error("Le traitement de l'image a pris trop de temps. L'image est peut-être trop lourde."));
+            }, 30000);
+
             reader.readAsDataURL(file);
             reader.onload = (event) => {
               const img = new Image();
               img.src = event.target?.result as string;
               img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600; // Réduit à 600px pour être sûr de rester sous 1MB
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-                
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Compression à 0.5 pour la sécurité
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                resolve(dataUrl);
+                try {
+                  const canvas = document.createElement('canvas');
+                  const MAX_WIDTH = 600; 
+                  const scaleSize = MAX_WIDTH / img.width;
+                  canvas.width = MAX_WIDTH;
+                  canvas.height = img.height * scaleSize;
+                  
+                  const ctx = canvas.getContext('2d');
+                  ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  
+                  const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                  clearTimeout(timeout);
+                  resolve(dataUrl);
+                } catch (e) {
+                  clearTimeout(timeout);
+                  reject(e);
+                }
+              };
+              img.onerror = () => {
+                clearTimeout(timeout);
+                reject(new Error("Impossible de lire le contenu de l'image."));
               };
             };
-            reader.onerror = error => reject(error);
+            reader.onerror = error => {
+              clearTimeout(timeout);
+              reject(error);
+            };
           });
         } else {
           // Pour les vidéos/audios, on tente le Storage mais on prévient
@@ -237,6 +255,7 @@ export const AdminPanel: React.FC = () => {
       }
 
       const path = 'medias';
+      console.log("Saving to Firestore...");
       await addDoc(collection(db, path), {
         name: finalName,
         type: finalType,
@@ -245,6 +264,7 @@ export const AdminPanel: React.FC = () => {
         size: finalSize,
         createdAt: serverTimestamp()
       });
+      console.log("Save successful!");
       
       setProgress(100);
       setSuccess(true);

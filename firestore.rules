@@ -24,10 +24,10 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        (request.auth.token.email == "predenatjeanphenix@gmail.com" && (request.auth.token.email_verified == true || request.auth.token.email_verified == false)) ||
-        request.auth.token.email == "manemrosembert@gmail.com" ||
-        request.auth.token.email == "chretiensmaptoujouretenegbibla@gmail.com" ||
-        request.auth.token.email == "stepheclerveaux@gmail.com"
+        request.auth.token.email.lower() == "predenatjeanphenix@gmail.com" ||
+        request.auth.token.email.lower() == "manemrosembert@gmail.com" ||
+        request.auth.token.email.lower() == "chretiensmaptoujouretenegbibla@gmail.com" ||
+        request.auth.token.email.lower() == "stepheclerveaux@gmail.com"
       );
     }
 
