@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { auth, db, storage } from '../firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, LogOut, CheckCircle2, AlertCircle, Loader2, Key, Settings, Trash2, Edit2, Save, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -165,63 +165,56 @@ export const AdminPanel: React.FC = () => {
       const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       const storageRef = ref(storage, `medias/${fileName}`);
       
-      console.log("Starting upload for:", fileName);
-      
-      // Start a simulated progress for better UX since uploadBytes doesn't provide real-time progress
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 95) return prev;
-          return prev + (95 - prev) * 0.1;
-        });
-      }, 500);
+      console.log("Starting upload task for:", fileName);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-      try {
-        const snapshot = await uploadBytes(storageRef, file);
-        clearInterval(progressInterval);
-        setProgress(100);
-        
-        console.log("Upload completed, getting download URL...");
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        console.log("Download URL obtained:", downloadURL);
-        
-        const path = 'medias';
-        try {
-          await addDoc(collection(db, path), {
-            name: file.name,
-            type: mediaType,
-            url: downloadURL,
-            description: description,
-            size: file.size,
-            createdAt: serverTimestamp()
-          });
-          console.log("Firestore document added successfully");
-        } catch (fsErr) {
-          handleFirestoreError(fsErr, OperationType.WRITE, path);
-        }
-        
-        setSuccess(true);
-        setFile(null);
-        setDescription('');
-        setUploading(false);
-        setTimeout(() => {
-          setSuccess(false);
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Upload progress: ${p.toFixed(2)}% (${snapshot.state})`);
+          // Ensure progress is at least 5% if started, to show activity
+          setProgress(Math.max(p, 5));
+        }, 
+        (err) => {
+          console.error("Upload error details:", err);
+          setError(`Erreur d'envoi: ${err.message} (Code: ${err.code})`);
+          setUploading(false);
           setProgress(0);
-        }, 3000);
-      } catch (err: any) {
-        clearInterval(progressInterval);
-        console.error("Upload error details:", {
-          code: err.code,
-          message: err.message,
-          name: err.name,
-          serverResponse: err.serverResponse
-        });
-        setError(`Erreur lors de l'upload: ${err.message} (Code: ${err.code})`);
-        setUploading(false);
-        setProgress(0);
-      }
+        }, 
+        async () => {
+          console.log("Upload finished successfully, getting URL...");
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            const path = 'medias';
+            
+            await addDoc(collection(db, path), {
+              name: file.name,
+              type: mediaType,
+              url: downloadURL,
+              description: description,
+              size: file.size,
+              createdAt: serverTimestamp()
+            });
+            
+            setProgress(100);
+            setSuccess(true);
+            setFile(null);
+            setDescription('');
+            setUploading(false);
+            setTimeout(() => {
+              setSuccess(false);
+              setProgress(0);
+            }, 3000);
+          } catch (err: any) {
+            console.error("Error after upload:", err);
+            setError("Erreur lors de l'enregistrement final: " + err.message);
+            setUploading(false);
+          }
+        }
+      );
     } catch (err: any) {
-      console.error("Unexpected upload error:", err);
-      setError("Erreur inattendue: " + err.message);
+      console.error("Unexpected error:", err);
+      setError("Une erreur inattendue est survenue: " + err.message);
       setUploading(false);
       setProgress(0);
     }
