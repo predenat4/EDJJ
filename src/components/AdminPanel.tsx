@@ -199,7 +199,7 @@ export const AdminPanel: React.FC = () => {
               img.src = event.target?.result as string;
               img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // Taille optimisée pour Firestore (1MB max)
+                const MAX_WIDTH = 600; // Réduit à 600px pour être sûr de rester sous 1MB
                 const scaleSize = MAX_WIDTH / img.width;
                 canvas.width = MAX_WIDTH;
                 canvas.height = img.height * scaleSize;
@@ -207,8 +207,8 @@ export const AdminPanel: React.FC = () => {
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
                 
-                // Compression à 0.7 pour rester sous la limite de 1MB de Firestore
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                // Compression à 0.5 pour la sécurité
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                 resolve(dataUrl);
               };
             };
@@ -257,7 +257,13 @@ export const AdminPanel: React.FC = () => {
       }, 3000);
     } catch (err: any) {
       console.error("Detailed Error:", err);
-      setError(err.message || "Erreur de publication.");
+      let msg = err.message || "Erreur de publication.";
+      if (msg.includes("Missing or insufficient permissions")) {
+        msg = "Erreur de permission. Vérifiez que vous êtes bien connecté en tant qu'administrateur.";
+      } else if (msg.includes("The document is too large")) {
+        msg = "L'image est trop grande. Essayez une image plus petite.";
+      }
+      setError(msg);
       setUploading(false);
       setProgress(0);
     }

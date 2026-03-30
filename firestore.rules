@@ -35,7 +35,7 @@ service cloud.firestore {
       return data.keys().hasAll(['name', 'type', 'url', 'createdAt']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 255 &&
              data.type in ['image', 'video', 'audio'] &&
-             data.url is string && data.url.matches("^https://.*") &&
+             data.url is string && (data.url.matches("^https://.*") || data.url.matches("^data:image/.*")) &&
              data.createdAt is timestamp;
     }
 
