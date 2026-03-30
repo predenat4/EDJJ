@@ -188,27 +188,42 @@ export const AdminPanel: React.FC = () => {
         finalSize = file.size;
         finalType = getMediaType(file);
 
-        // Try Cloudinary first if configured
-        if (cloudinaryConfig.cloudName && cloudinaryConfig.uploadPreset) {
-          console.log("Uploading to Cloudinary...");
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('upload_preset', cloudinaryConfig.uploadPreset);
-          
-          const res = await fetch(
-            `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/${finalType === 'video' ? 'video' : 'image'}/upload`,
-            { method: 'POST', body: formData }
-          );
-          
-          const data = await res.json();
-          if (data.error) throw new Error(data.error.message);
-          finalUrl = data.secure_url;
+        if (finalType === 'image') {
+          // COMPRESSION ET CONVERSION EN BASE64 (Solution pour Haïti)
+          console.log("Compressing image for direct database storage...");
+          finalUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+              const img = new Image();
+              img.src = event.target?.result as string;
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // Taille optimisée pour Firestore (1MB max)
+                const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+                
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Compression à 0.7 pour rester sous la limite de 1MB de Firestore
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                resolve(dataUrl);
+              };
+            };
+            reader.onerror = error => reject(error);
+          });
         } else {
-          // Fallback to Firebase Storage
-          const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-          const storageRef = ref(storage, `medias/${fileName}`);
-          const snapshot = await uploadBytes(storageRef, file);
-          finalUrl = await getDownloadURL(snapshot.ref);
+          // Pour les vidéos/audios, on tente le Storage mais on prévient
+          try {
+            const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+            const storageRef = ref(storage, `medias/${fileName}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            finalUrl = await getDownloadURL(snapshot.ref);
+          } catch (e) {
+            throw new Error("Le stockage de vidéos est bloqué par Firebase (Plan Blaze). Pour les vidéos, utilisez l'option 'Lien Direct' avec un lien YouTube ou Streamable.");
+          }
         }
       } else {
         // Mode Lien Direct
@@ -242,11 +257,7 @@ export const AdminPanel: React.FC = () => {
       }, 3000);
     } catch (err: any) {
       console.error("Detailed Error:", err);
-      let msg = err.message || "Erreur de publication.";
-      if (err.code === 'storage/unauthorized') {
-        msg = "Le stockage Firebase est bloqué (Plan Blaze requis). Veuillez configurer Cloudinary dans l'onglet 'Paramètres' pour publier gratuitement.";
-      }
-      setError(msg);
+      setError(err.message || "Erreur de publication.");
       setUploading(false);
       setProgress(0);
     }
@@ -424,36 +435,42 @@ export const AdminPanel: React.FC = () => {
             </div>
 
             {uploadMode === 'file' ? (
-              <div 
-                {...getRootProps()} 
-                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${
-                  isDragActive ? 'border-purple-500 bg-purple-500/5' : 'border-zinc-800 hover:border-zinc-700'
-                }`}
-              >
-                <input {...getInputProps()} />
-                {file ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <CheckCircle2 className="w-12 h-12 text-green-500" />
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                      className="mt-2 text-xs text-red-500 hover:underline"
-                    >
-                      Changer de fichier
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
-                      <Upload className="w-8 h-8 text-zinc-500" />
+              <div className="space-y-4 mb-6">
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-green-400">
+                  <p className="font-bold mb-1">✅ Mode Direct (Spécial Haïti) :</p>
+                  Vos photos seront compressées et enregistrées directement. Pas besoin de compte externe.
+                </div>
+                <div 
+                  {...getRootProps()} 
+                  className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${
+                    isDragActive ? 'border-purple-500 bg-purple-500/5' : 'border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  {file ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <CheckCircle2 className="w-12 h-12 text-green-500" />
+                      <p className="font-medium">{file.name}</p>
+                      <p className="text-xs text-zinc-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                        className="mt-2 text-xs text-red-500 hover:underline"
+                      >
+                        Changer de fichier
+                      </button>
                     </div>
-                    <div>
-                      <p className="font-medium">Cliquez ou glissez un fichier ici</p>
-                      <p className="text-xs text-zinc-500 mt-1">Images, Vidéos ou Audios</p>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-zinc-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Cliquez ou glissez une PHOTO ici</p>
+                        <p className="text-xs text-zinc-500 mt-1">Envoi direct depuis votre appareil</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
               <div className="mb-6 space-y-4">
