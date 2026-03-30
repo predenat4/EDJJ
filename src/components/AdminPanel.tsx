@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { auth, db, storage } from '../firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useDropzone } from 'react-dropzone';
 import { Upload, X, LogOut, CheckCircle2, AlertCircle, Loader2, Key, Settings, Trash2, Edit2, Save, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -60,43 +60,6 @@ const handleFirestoreError = (error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 };
 
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: any, errorInfo: any) {
-    console.error("ErrorBoundary caught an error", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 text-center glass-card max-w-lg mx-auto mt-20">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Une erreur est survenue</h2>
-          <p className="text-zinc-500 text-sm mb-6">
-            {this.state.error?.message || "Une erreur inattendue s'est produite dans l'espace admin."}
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="btn-blue-gradient flex items-center gap-2 mx-auto"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Actualiser la page
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 const ALLOWED_EMAILS = [
   'predenatjeanphenix@gmail.com',
   'manemrosembert@gmail.com',
@@ -105,14 +68,6 @@ const ALLOWED_EMAILS = [
 ];
 
 export const AdminPanel: React.FC = () => {
-  return (
-    <ErrorBoundary>
-      <AdminPanelContent />
-    </ErrorBoundary>
-  );
-};
-
-const AdminPanelContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState<'upload' | 'manage'>('upload');
@@ -210,56 +165,65 @@ const AdminPanelContent: React.FC = () => {
       const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       const storageRef = ref(storage, `medias/${fileName}`);
       
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      console.log("Starting upload for:", fileName);
+      
+      // Start a simulated progress for better UX since uploadBytes doesn't provide real-time progress
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 95) return prev;
+          return prev + (95 - prev) * 0.1;
+        });
+      }, 500);
 
-      uploadTask.on('state_changed', 
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log("Upload progress:", p.toFixed(2) + "%", "Transferred:", snapshot.bytesTransferred, "Total:", snapshot.totalBytes);
-          setProgress(p);
-        }, 
-        (err) => {
-          console.error("Upload task error:", err);
-          setError(`Erreur lors de l'upload: ${err.message} (Code: ${err.code})`);
-          setUploading(false);
-        }, 
-        async () => {
-          console.log("Upload completed, getting download URL...");
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log("Download URL obtained:", downloadURL);
-            
-            const path = 'medias';
-            try {
-              await addDoc(collection(db, path), {
-                name: file.name,
-                type: mediaType,
-                url: downloadURL,
-                description: description,
-                size: file.size,
-                createdAt: serverTimestamp()
-              });
-              console.log("Firestore document added successfully");
-            } catch (fsErr) {
-              handleFirestoreError(fsErr, OperationType.WRITE, path);
-            }
-            
-            setSuccess(true);
-            setFile(null);
-            setDescription('');
-            setUploading(false);
-            setTimeout(() => setSuccess(false), 3000);
-          } catch (err: any) {
-            console.error("Post-upload error:", err);
-            setError("Erreur lors de l'enregistrement: " + err.message);
-            setUploading(false);
-          }
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        clearInterval(progressInterval);
+        setProgress(100);
+        
+        console.log("Upload completed, getting download URL...");
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log("Download URL obtained:", downloadURL);
+        
+        const path = 'medias';
+        try {
+          await addDoc(collection(db, path), {
+            name: file.name,
+            type: mediaType,
+            url: downloadURL,
+            description: description,
+            size: file.size,
+            createdAt: serverTimestamp()
+          });
+          console.log("Firestore document added successfully");
+        } catch (fsErr) {
+          handleFirestoreError(fsErr, OperationType.WRITE, path);
         }
-      );
+        
+        setSuccess(true);
+        setFile(null);
+        setDescription('');
+        setUploading(false);
+        setTimeout(() => {
+          setSuccess(false);
+          setProgress(0);
+        }, 3000);
+      } catch (err: any) {
+        clearInterval(progressInterval);
+        console.error("Upload error details:", {
+          code: err.code,
+          message: err.message,
+          name: err.name,
+          serverResponse: err.serverResponse
+        });
+        setError(`Erreur lors de l'upload: ${err.message} (Code: ${err.code})`);
+        setUploading(false);
+        setProgress(0);
+      }
     } catch (err: any) {
       console.error("Unexpected upload error:", err);
       setError("Erreur inattendue: " + err.message);
       setUploading(false);
+      setProgress(0);
     }
   };
 
@@ -322,12 +286,17 @@ const AdminPanelContent: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
         <AlertCircle className="w-16 h-16 text-red-500 mb-6" />
         <h2 className="text-2xl font-bold mb-2">Accès Refusé</h2>
-        <p className="text-zinc-500 text-center mb-8 max-w-sm">
-          Votre compte ({user.email}) n'est pas autorisé à accéder à cet espace.
+        <p className="text-zinc-500 text-center mb-4 max-w-sm">
+          Le compte <span className="text-white font-mono bg-white/10 px-2 py-0.5 rounded">{user.email}</span> n'est pas dans la liste des administrateurs autorisés.
         </p>
-        <button onClick={handleLogout} className="px-6 py-2 rounded-lg border border-zinc-700 hover:bg-zinc-800 transition-colors">
-          Se déconnecter
-        </button>
+        <p className="text-xs text-zinc-600 text-center mb-8 max-w-xs italic">
+          Si c'est votre email principal, contactez le développeur pour l'ajouter à la liste blanche.
+        </p>
+        <div className="flex gap-4">
+          <button onClick={handleLogout} className="px-6 py-2 rounded-lg border border-zinc-700 hover:bg-zinc-800 transition-colors text-sm">
+            Changer de compte
+          </button>
+        </div>
       </div>
     );
   }
