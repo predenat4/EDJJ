@@ -60,7 +60,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
               <span className="text-xs text-zinc-500 uppercase tracking-widest font-bold">{media.type}</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-purple-600/20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-4 backdrop-blur-[2px]">
+          <div className="absolute inset-0 bg-purple-600/20 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-4 backdrop-blur-[2px] hidden md:flex">
             <button 
               onClick={() => setIsPreviewOpen(true)}
               className="p-3 bg-white text-purple-600 shadow-xl shadow-purple-500/40 hover:scale-110 active:scale-95 transition-all rounded-full"
@@ -70,44 +70,44 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
           </div>
         </div>
 
-        <div className="p-5 flex flex-col flex-grow">
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="font-bold text-sm line-clamp-1 flex-grow group-hover/card:text-purple-400 transition-colors" title={media.name}>
+        <div className="p-4 md:p-5 flex flex-col flex-grow">
+          <div className="flex justify-between items-start mb-2 md:mb-3">
+            <h3 className="font-bold text-sm md:text-base line-clamp-1 flex-grow group-hover/card:text-purple-400 transition-colors" title={media.name}>
               {media.name}
             </h3>
-            <span className="text-[10px] font-bold text-zinc-500 ml-2 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded">
+            <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 ml-2 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded">
               {media.createdAt?.toDate ? format(media.createdAt.toDate(), 'dd/MM/yyyy') : '...'}
             </span>
           </div>
           
-          <p className="text-xs text-zinc-400 line-clamp-2 mb-6 flex-grow leading-relaxed">
+          <p className="text-[11px] md:text-xs text-zinc-400 line-clamp-2 mb-4 md:mb-6 flex-grow leading-relaxed">
             {media.description || 'Pas de description.'}
           </p>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 md:gap-2">
             <button 
               onClick={() => setIsPreviewOpen(true)}
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 transition-all text-blue-400 group/btn border border-blue-500/20"
+              className="flex flex-col items-center justify-center gap-1 p-2.5 md:p-2 rounded-full bg-blue-500/10 hover:bg-blue-500/20 transition-all text-blue-400 group/btn border border-blue-500/20 active:scale-95"
             >
-              <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Aperçu</span>
+              <Eye className="w-4 h-4 md:w-4 md:h-4 group-hover/btn:scale-110 transition-transform" />
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-wider">Aperçu</span>
             </button>
             <a 
               href={media.url} 
               download={media.name}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-green-500/10 hover:bg-green-500/20 transition-all text-green-400 group/btn border border-green-500/20"
+              className="flex flex-col items-center justify-center gap-1 p-2.5 md:p-2 rounded-full bg-green-500/10 hover:bg-green-500/20 transition-all text-green-400 group/btn border border-green-500/20 active:scale-95"
             >
-              <Download className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Télécharger</span>
+              <Download className="w-4 h-4 md:w-4 md:h-4 group-hover/btn:scale-110 transition-transform" />
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-wider">Sauver</span>
             </a>
             <button 
               onClick={handleShare}
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 transition-all text-purple-400 group/btn border border-purple-500/20"
+              className="flex flex-col items-center justify-center gap-1 p-2.5 md:p-2 rounded-full bg-purple-500/10 hover:bg-purple-500/20 transition-all text-purple-400 group/btn border border-purple-500/20 active:scale-95"
             >
-              <Share2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Partager</span>
+              <Share2 className="w-4 h-4 md:w-4 md:h-4 group-hover/btn:scale-110 transition-transform" />
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-wider">Partager</span>
             </button>
           </div>
         </div>
@@ -128,60 +128,60 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-4xl bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-800"
+              className="relative w-full max-w-4xl bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 max-h-[95vh] flex flex-col"
             >
               <button 
                 onClick={() => setIsPreviewOpen(false)}
-                className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                className="absolute top-3 right-3 md:top-4 md:right-4 z-50 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors backdrop-blur-md border border-white/10"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 md:w-6 md:h-6" />
               </button>
 
-              <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
-                <div className="flex-grow bg-black flex items-center justify-center min-h-[300px]">
+              <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden">
+                <div className="w-full md:flex-grow bg-black flex items-center justify-center min-h-[250px] md:min-h-[400px] sticky top-0 md:relative z-10">
                   {media.type === 'image' && (
-                    <img src={media.url} alt={media.name} className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
+                    <img src={media.url} alt={media.name} className="max-w-full max-h-[50vh] md:max-h-full object-contain" referrerPolicy="no-referrer" />
                   )}
                   {media.type === 'video' && (
-                    <video src={media.url} controls className="max-w-full max-h-full" />
+                    <video src={media.url} controls className="max-w-full max-h-[50vh] md:max-h-full" />
                   )}
                   {media.type === 'audio' && (
-                    <div className="flex flex-col items-center gap-6 w-full p-12">
-                      <Music className="w-24 h-24 text-purple-500 animate-pulse" />
+                    <div className="flex flex-col items-center gap-4 md:gap-6 w-full p-8 md:p-12">
+                      <Music className="w-16 h-16 md:w-24 md:h-24 text-purple-500 animate-pulse" />
                       <audio src={media.url} controls className="w-full" />
                     </div>
                   )}
                 </div>
                 
-                <div className="w-full md:w-80 p-6 flex flex-col border-t md:border-t-0 md:border-l border-zinc-800">
-                  <h2 className="text-xl font-bold mb-2">{media.name}</h2>
+                <div className="w-full md:w-80 p-5 md:p-6 flex flex-col border-t md:border-t-0 md:border-l border-zinc-800 bg-zinc-900">
+                  <h2 className="text-lg md:text-xl font-bold mb-2 leading-tight">{media.name}</h2>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-[10px] rounded uppercase font-bold tracking-wider">
+                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[9px] md:text-[10px] rounded uppercase font-bold tracking-wider">
                       {media.type}
                     </span>
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-[11px] md:text-xs text-zinc-500">
                       {media.createdAt?.toDate ? format(media.createdAt.toDate(), 'dd MMMM yyyy') : '...'}
                     </span>
                   </div>
                   
-                  <p className="text-zinc-400 text-sm mb-6 flex-grow overflow-y-auto">
+                  <p className="text-zinc-400 text-xs md:text-sm mb-6 md:flex-grow md:overflow-y-auto leading-relaxed">
                     {media.description || 'Aucune description supplémentaire fournie pour ce média.'}
                   </p>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2.5 md:gap-3 mt-auto">
                     <a 
                       href={media.url} 
                       download={media.name}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-blue-gradient text-center py-3 flex items-center justify-center gap-2"
+                      className="btn-blue-gradient text-center py-3.5 md:py-3 flex items-center justify-center gap-2 text-sm md:text-base active:scale-95 rounded-full"
                     >
                       <Download className="w-5 h-5" />
                       Télécharger
                     </a>
                     <button 
                       onClick={handleShare}
-                      className="w-full py-3 rounded-lg border border-zinc-700 hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-3.5 md:py-3 rounded-full border border-zinc-700 hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2 text-sm md:text-base active:scale-95"
                     >
                       <Share2 className="w-5 h-5" />
                       Partager

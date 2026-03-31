@@ -42,27 +42,27 @@ export const MediaGallery: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-6 mb-12 items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-8 md:mb-12 items-center justify-between">
         <div className="relative w-full md:max-w-md group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-purple-500 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-zinc-500 group-focus-within:text-purple-500 transition-colors" />
           <input 
             type="text" 
-            placeholder="Rechercher par nom ou date..."
+            placeholder="Rechercher..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-full py-3 pl-12 pr-6 text-sm focus:outline-none focus:border-purple-500 transition-all focus:ring-4 focus:ring-purple-500/10"
+            className="w-full bg-zinc-900/80 backdrop-blur-sm border border-zinc-800 rounded-full py-3.5 md:py-3 pl-11 md:pl-12 pr-6 text-sm focus:outline-none focus:border-purple-500 transition-all focus:ring-4 focus:ring-purple-500/10"
           />
         </div>
 
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide">
+        <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap relative overflow-hidden ${
+              className={`px-6 md:px-8 py-3 md:py-2.5 rounded-full text-[13px] md:text-sm font-bold transition-all duration-500 whitespace-nowrap relative overflow-hidden active:scale-90 ${
                 activeCategory === cat.id 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-[0_10px_20px_-5px_rgba(139,92,246,0.5)] -translate-y-1 scale-105' 
-                  : 'bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border border-white/5'
+                  ? 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-[0_10px_25px_-5px_rgba(139,92,246,0.6)] md:-translate-y-1 md:scale-105' 
+                  : 'bg-zinc-900/40 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 border border-white/5 hover:border-white/10 backdrop-blur-md'
               }`}
             >
               {cat.label}

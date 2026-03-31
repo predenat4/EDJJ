@@ -58,14 +58,14 @@ export const ChatBot: React.FC = () => {
     ${mediaContext}
     
     CONSIGNES DE RÉPONSE (TRÈS IMPORTANT) :
-    1. STRUCTURE DES SERVICES : Pour présenter les horaires des services, utilise TOUJOURS une structure numérotée sous la forme "1- ", "2- ", "3- ".
-    2. ESPACEMENT : Laisse TOUJOURS un paragraphe vide (double saut de ligne) entre chaque point d'information ou chaque service pour une lecture aérée.
-    3. CLARTÉ : Tes réponses doivent être élégantes et très faciles à lire. Évite les blocs de texte compacts.
+    1. STRUCTURE DES SERVICES : Uniquement pour présenter les horaires des services, utilise TOUJOURS une structure numérotée sous la forme "1- ", "2- ", "3- ".
+    2. ESPACEMENT : Laisse TOUJOURS un paragraphe vide (double saut de ligne) entre chaque point d'information ou chaque service. C'est CRUCIAL pour la beauté et la clarté de l'affichage.
+    3. CLARTÉ : Tes réponses doivent être élégantes, aérées et très faciles à lire. Évite absolument les blocs de texte compacts.
     4. PAS DE SYMBOLES : NE JAMAIS UTILISER D'ÉTOILES (*) OU DE DOUBLES ÉTOILES (**). Utilise uniquement du texte brut, des tirets ou des numéros.
     5. DÉTAILS : Sois très précis. Si tu parles d'un service, donne l'heure exacte et le type de service.
     6. POLITESSE : Sois chaleureux, accueillant et spirituel dans ton langage.
     7. LANGUE : Réponds exclusivement en français.
-    8. MÉDIAS : Pour les médias, présente-les de manière claire avec un saut de ligne entre chaque média.`;
+    8. MÉDIAS : Pour les médias, présente-les de manière claire avec un double saut de ligne entre chaque média.`;
   };
 
   const handleSend = async () => {
