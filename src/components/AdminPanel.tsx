@@ -675,18 +675,18 @@ export const AdminPanel: React.FC = () => {
                     
                     <div className="flex-grow min-w-0">
                       {editingId === media.id ? (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
                           <input 
                             type="text"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="bg-zinc-800 border border-purple-500 rounded px-2 py-1 text-sm w-full focus:outline-none"
+                            className="bg-zinc-800 border border-purple-500 rounded-full px-4 py-1.5 text-sm w-full focus:outline-none"
                             autoFocus
                           />
-                          <button onClick={() => handleUpdateName(media.id)} className="p-1 text-green-500 hover:bg-green-500/10 rounded">
+                          <button onClick={() => handleUpdateName(media.id)} className="p-2 text-green-500 hover:bg-green-500/10 rounded-full transition-colors">
                             <Save className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setEditingId(null)} className="p-1 text-red-500 hover:bg-red-500/10 rounded">
+                          <button onClick={() => setEditingId(null)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition-colors">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
@@ -698,10 +698,10 @@ export const AdminPanel: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-2 transition-all">
                       <button 
                         onClick={() => startEditing(media)}
-                        className="p-2 bg-zinc-800 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-500 rounded-full transition-all flex items-center gap-2"
+                        className="p-2.5 bg-zinc-800 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-500 rounded-full transition-all flex items-center gap-2 active:scale-95"
                         title="Modifier le nom"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -710,7 +710,7 @@ export const AdminPanel: React.FC = () => {
                       <button 
                         onClick={() => handleDelete(media)}
                         disabled={deletingId === media.id}
-                        className="p-2 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-500 rounded-full transition-all"
+                        className="p-2.5 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-500 rounded-full transition-all active:scale-95"
                         title="Supprimer"
                       >
                         {deletingId === media.id ? (
