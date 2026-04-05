@@ -27,23 +27,35 @@ service cloud.firestore {
         request.auth.token.email.lower() == "predenatjeanphenix@gmail.com" ||
         request.auth.token.email.lower() == "manemrosembert@gmail.com" ||
         request.auth.token.email.lower() == "chretiensmaptoujouretenegbibla@gmail.com" ||
-        request.auth.token.email.lower() == "stepheclerveaux@gmail.com"
+        request.auth.token.email.lower() == "stepheclerveaux@gmail.com" ||
+        request.auth.token.email.lower() == "sonthonaxjean3@gmail.com"
       );
     }
 
     function isValidMedia(data) {
+      let allowedFields = ['name', 'type', 'url', 'createdAt', 'description', 'size'];
       return data.keys().hasAll(['name', 'type', 'url', 'createdAt']) &&
+             data.keys().hasOnly(allowedFields) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 255 &&
              data.type in ['image', 'video', 'audio'] &&
-             data.url is string && (data.url.matches("^https://.*") || data.url.matches("^data:image/.*")) &&
-             data.createdAt is timestamp;
+             data.url is string && data.url.size() < 1048576 &&
+             (data.url.matches("^https://.*") || data.url.matches("^data:image/.*")) &&
+             data.createdAt is timestamp &&
+             (!('description' in data) || (data.description is string && data.description.size() < 1000)) &&
+             (!('size' in data) || (data.size is number && data.size >= 0));
     }
 
     match /medias/{mediaId} {
       allow read: if true; // Publicly readable
       allow create: if isAdmin() && isValidMedia(request.resource.data);
-      allow update: if isAdmin() && isValidMedia(request.resource.data);
+      allow update: if isAdmin() && isValidMedia(request.resource.data) && 
+                      request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
   }
 }

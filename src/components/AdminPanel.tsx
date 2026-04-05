@@ -192,9 +192,33 @@ export const AdminPanel: React.FC = () => {
         finalSize = file.size;
         finalType = getMediaType(file);
 
-        if (finalType === 'image') {
-          // COMPRESSION ET CONVERSION EN BASE64 (Solution pour Haïti)
-          console.log("Compressing image for direct database storage...");
+        // SI CLOUDINARY EST CONFIGURÉ, ON L'UTILISE EN PRIORITÉ (Meilleure solution)
+        if (cloudinaryConfig.cloudName && cloudinaryConfig.uploadPreset) {
+          console.log("Using Cloudinary for upload...");
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+          
+          const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/auto/upload`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Erreur Cloudinary: ${errorData.error?.message || 'Upload échoué'}`);
+          }
+
+          const data = await response.json();
+          finalUrl = data.secure_url;
+          console.log("Cloudinary upload successful, URL:", finalUrl);
+        } 
+        else if (finalType === 'image') {
+          // COMPRESSION ET CONVERSION EN BASE64 (Solution de secours pour images uniquement)
+          console.log("Cloudinary not configured, using Base64 compression for image...");
           finalUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             
