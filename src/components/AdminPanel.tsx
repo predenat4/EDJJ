@@ -62,7 +62,8 @@ const ALLOWED_EMAILS = [
   'predenatjeanphenix@gmail.com',
   'manemrosembert@gmail.com',
   'chretiensmaptoujouretenegbibla@gmail.com',
-  'stepheclerveaux@gmail.com'
+  'stepheclerveaux@gmail.com',
+  'sonthonaxjean3@gmail.com'
 ];
 
 export const AdminPanel: React.FC = () => {

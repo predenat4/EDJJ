@@ -21,9 +21,61 @@ const CrucifixIcon = ({ className }: { className?: string }) => (
 
 export default function App() {
   const [view, setView] = useState<'gallery' | 'admin'>('gallery');
+  const [showSplash, setShowSplash] = useState(true);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#050505] selection:bg-blue-500/30 relative">
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="fixed inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center overflow-hidden"
+          >
+            {/* Background Blobs for Splash */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-blue-600/20 blur-[150px] rounded-full animate-pulse" />
+            </div>
+
+            {/* Center Logo */}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="relative z-10"
+            >
+              <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-blue-700 via-purple-600 to-blue-600 rounded-[2rem] flex items-center justify-center shadow-[0_0_50px_rgba(59,130,246,0.3)] border border-white/10">
+                <CrucifixIcon className="w-12 h-12 md:w-16 md:h-16 text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)]" />
+              </div>
+            </motion.div>
+
+            {/* Bottom Text */}
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+              className="absolute bottom-16 text-center z-10"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-3xl md:text-4xl font-black tracking-tighter text-white">EDJJ</span>
+                <span className="text-3xl md:text-4xl font-black tracking-tighter text-blue-500">Media</span>
+              </div>
+              <div className="h-1 w-12 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto rounded-full" />
+              <p className="text-[10px] text-zinc-500 uppercase tracking-[0.4em] mt-4 font-bold">Eglise de DIEU JEHOVAH JIREH</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background Blobs for depth */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
