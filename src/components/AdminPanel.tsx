@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { auth, db, storage } from '../firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
@@ -38,10 +38,9 @@ interface FirestoreErrorInfo {
 }
 
 const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
-  // Safe extraction of error message to avoid circular structures
   const errorMessage = error instanceof Error ? error.message : String(error);
   
-  const errInfo = {
+  const errInfo: FirestoreErrorInfo = {
     error: errorMessage,
     operationType,
     path,
@@ -49,13 +48,19 @@ const handleFirestoreError = (error: unknown, operationType: OperationType, path
       userId: auth.currentUser?.uid || 'anonymous',
       email: auth.currentUser?.email || null,
       emailVerified: auth.currentUser?.emailVerified || false,
+      isAnonymous: auth.currentUser?.isAnonymous || false,
+      tenantId: auth.currentUser?.tenantId || null,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
     }
   };
 
-  console.error('Firestore Error:', errInfo);
-  
-  // Throw a simplified error message to avoid stringification issues
-  throw new Error(`Firestore ${operationType} error at ${path}: ${errorMessage}`);
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
 };
 
 const ALLOWED_EMAILS = [
@@ -63,7 +68,8 @@ const ALLOWED_EMAILS = [
   'manemrosembert@gmail.com',
   'chretiensmaptoujouretenegbibla@gmail.com',
   'stepheclerveaux@gmail.com',
-  'sonthonaxjean3@gmail.com'
+  'sonthonaxjean3@gmail.com',
+  'roodkellypaul10@gmail.com'
 ];
 
 export const AdminPanel: React.FC = () => {
@@ -317,8 +323,9 @@ export const AdminPanel: React.FC = () => {
         setProgress(0);
       }, 3000);
     } catch (err: any) {
-      console.error("Detailed Error:", err);
-      let msg = err.message || "Erreur de publication.";
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Detailed Error:", errorMessage);
+      let msg = errorMessage || "Erreur de publication.";
       if (msg.includes("Missing or insufficient permissions")) {
         msg = "Erreur de permission. Vérifiez que vous êtes bien connecté en tant qu'administrateur.";
       } else if (msg.includes("The document is too large")) {
@@ -378,10 +385,19 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const filteredMedias = medias.filter(m => 
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMedias = useMemo(() => {
+    if (!searchQuery.trim()) return medias;
+    
+    const terms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    
+    return medias.filter(m => {
+      const name = m.name.toLowerCase();
+      const desc = (m.description || '').toLowerCase();
+      
+      // All terms must match either name or description
+      return terms.every(term => name.includes(term) || desc.includes(term));
+    });
+  }, [medias, searchQuery]);
 
   if (!user) {
     return (
@@ -664,15 +680,23 @@ export const AdminPanel: React.FC = () => {
             className="space-y-4"
           >
             {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+            <div className="relative group/search">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within/search:text-purple-500 transition-colors" />
               <input 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher un média par nom ou description..."
-                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-full py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-purple-500 transition-all"
+                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-full py-4 pl-12 pr-12 text-sm focus:outline-none focus:border-purple-500 transition-all"
               />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors text-zinc-500 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {/* Media List */}
